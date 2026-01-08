@@ -1,0 +1,51 @@
+name: Build & Zip Materia Theme
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build Materia theme and ZIP
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node (needed for sass)
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential meson ninja-build python3-pip gettext sassc
+          npm install -g sass # needed for sass compilation
+
+      - name: Configure Meson
+        run: |
+          meson setup build --prefix=$PWD/install
+
+      - name: Build
+        run: |
+          ninja -C build
+
+      - name: Install to local dir
+        run: |
+          ninja -C build install
+
+      - name: Zip installed theme
+        run: |
+          mkdir -p release
+          cp -r install/share/themes release/
+          zip -r materia-theme.zip release/share/themes
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: materia-theme
+          path: materia-theme.zip
